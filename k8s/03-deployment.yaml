@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: status-page-web
+  labels:
+    app: status-page
+spec:
+  replicas: 2 
+  selector:
+    matchLabels:
+      app: status-page
+  template:
+    metadata:
+      labels:
+        app: status-page
+    spec:
+      containers:
+      - name: status-page-app
+        image: 992382545251.dkr.ecr.us-east-1.amazonaws.com/alon-aviad-repo:status-page-2.0
+        ports:
+        - containerPort: 8000 
+        envFrom:
+        - configMapRef:
+            name: status-page-config
+        - secretRef:
+            name: status-page-secret

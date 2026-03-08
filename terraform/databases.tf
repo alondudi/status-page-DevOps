@@ -40,3 +40,13 @@ resource "aws_elasticache_cluster" "redis" {
   subnet_group_name    = aws_elasticache_subnet_group.redis_subnet_group.name
   security_group_ids   = [aws_security_group.redis.id] 
 }
+
+output "rds_endpoint" {
+  description = "The connection endpoint for the PostgreSQL database"
+  value       = aws_db_instance.postgres.endpoint
+}
+
+output "redis_endpoint" {
+  description = "The connection endpoint for the Redis cluster"
+  value       = aws_elasticache_cluster.redis.cache_nodes[0].address
+}
