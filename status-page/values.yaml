@@ -22,3 +22,10 @@ redis:
 service:
   type: LoadBalancer
   port: 80
+
+externalSecrets:
+  region: us-east-1
+  secretStoreName: aws-secretsmanager
+  refreshInterval: 1h
+  remoteSecretName: "status-page-db-aa-credentials"
+  k8sSecretName: "status-page-secret"
