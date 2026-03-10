@@ -51,3 +51,27 @@ resource "aws_iam_role_policy_attachment" "ecr_read_only" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
   role       = aws_iam_role.eks_node_role.name
 }
+
+resource "aws_iam_policy" "read_db_secret_policy" {
+  name        = "status-page-read-db-secret-policy-aa"
+  description = "Allow EKS nodes to read DB credentials from Secrets Manager"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = aws_secretsmanager_secret.db_credentials.arn
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "eks_node_secret_attach" {
+  policy_arn = aws_iam_policy.read_db_secret_policy.arn
+  role       = aws_iam_role.eks_node_role.name
+}

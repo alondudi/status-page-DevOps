@@ -1,6 +1,6 @@
 resource "aws_eks_cluster" "main" {
   name     = "status-page-cluster-aa"
-    role_arn = aws_iam_role.eks_cluster_role.arn
+  role_arn = aws_iam_role.eks_cluster_role.arn
 
   vpc_config {
     subnet_ids              = module.vpc.private_subnets
@@ -14,12 +14,30 @@ resource "aws_eks_cluster" "main" {
   ]
 }
 
+
+resource "aws_launch_template" "eks_nodes" {
+  name_prefix = "status-page-nodes-lt-"
+
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required" 
+    http_put_response_hop_limit = 2          
+  }
+
+  description = "Launch template for EKS nodes with hop limit 2"
+}
+
 resource "aws_eks_node_group" "nodes" {
   cluster_name    = aws_eks_cluster.main.name
   node_group_name = "status-page-node-group-aa"
   node_role_arn   = aws_iam_role.eks_node_role.arn
   subnet_ids      = module.vpc.private_subnets
-  instance_types = ["t3.medium"]
+  instance_types  = ["t3.medium"]
+
+  launch_template {
+    id      = aws_launch_template.eks_nodes.id
+    version = aws_launch_template.eks_nodes.default_version
+  }
 
   scaling_config {
     desired_size = 2 
@@ -33,6 +51,7 @@ resource "aws_eks_node_group" "nodes" {
     aws_iam_role_policy_attachment.ecr_read_only
   ]
 }
+ 
 
 output "eks_cluster_name" {
   value = aws_eks_cluster.main.name
