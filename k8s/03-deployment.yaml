@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: status-page-app
-        image: 992382545251.dkr.ecr.us-east-1.amazonaws.com/alon-aviad-repo:status-page-2.0
+        image: 992382545251.dkr.ecr.us-east-1.amazonaws.com/alon-aviad-repo:status-page-4.0
         ports:
         - containerPort: 8000 
         envFrom:
