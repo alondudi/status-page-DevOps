@@ -1,0 +1,24 @@
+replicaCount: 2
+
+image:
+  repository: "992382545251.dkr.ecr.us-east-1.amazonaws.com/alon-aviad-repo"
+  tag: "status-page-4.0"
+
+app:
+  port: 8000
+  name: "status-page"
+
+database:
+  host: "status-page-db-aa.cx248m4we6k7.us-east-1.rds.amazonaws.com"
+  port: "5432"
+  name: "statuspage"
+  user: "dbadmin"
+  password: ":9Zt3=78LeIuK*A?"
+
+redis:
+  host: "status-page-redis-aa.7fftml.0001.use1.cache.amazonaws.com"
+  port: "6379"
+
+service:
+  type: LoadBalancer
+  port: 80

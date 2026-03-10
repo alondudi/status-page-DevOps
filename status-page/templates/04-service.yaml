@@ -3,10 +3,10 @@ kind: Service
 metadata:
   name: status-page-service
 spec:
-  type: LoadBalancer
+  type: {{ .Values.service.type }}
   selector:
     app: status-page 
   ports:
     - protocol: TCP
-      port: 80 
-      targetPort: 8000 
+      port: {{ .Values.service.port }} 
+      targetPort: {{ .Values.app.port }} 
