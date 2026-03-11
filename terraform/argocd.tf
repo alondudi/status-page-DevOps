@@ -69,7 +69,7 @@ resource "helm_release" "argocd" {
   }
 
   set {
-    name  = "server.ingress.hostname"
+    name  = "server.ingress.hosts[0]"
     value = "argocd.statuspage-aa.click"
   }
 
