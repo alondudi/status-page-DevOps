@@ -20,8 +20,15 @@ redis:
   port: "6379"
 
 service:
-  type: LoadBalancer
+  type: ClusterIP
   port: 80
+
+ingress:
+  enabled: true
+  host: "statuspage-aa.click"
+  path: "/"
+  healthCheckPath: "/"
+  certificateArn: ""  # Set to ACM cert ARN after terraform apply, e.g. from: terraform output acm_certificate_arn
 
 externalSecrets:
   region: us-east-1
