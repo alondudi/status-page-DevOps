@@ -21,7 +21,13 @@ terraform {
       version = "~> 1.14"
     }
   }
+  backend "s3" {
+    bucket = "aa-statuspage-terraform-state" # השם הייחודי שנתת ל-Bucket
+    key    = "terraform.tfstate"                     # שם הקובץ שיישמר בענן
+    region = "us-east-1"                             # האזור שבו יצרת את ה-Bucket
+  }
 }
+
 
 provider "aws" {
   region = "us-east-1"
