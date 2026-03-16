@@ -1,0 +1,8 @@
+apiVersion: v2
+name: argocd-config
+version: 1.0.0
+description: A Helm chart to manage ArgoCD itself via GitOps
+dependencies:
+  - name: argo-cd
+    version: 5.55.0
+    repository: https://argoproj.github.io/argo-helm
