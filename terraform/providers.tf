@@ -22,9 +22,9 @@ terraform {
     }
   }
   backend "s3" {
-    bucket = "aa-statuspage-terraform-state" # השם הייחודי שנתת ל-Bucket
-    key    = "terraform.tfstate"                     # שם הקובץ שיישמר בענן
-    region = "us-east-1"                             # האזור שבו יצרת את ה-Bucket
+    bucket = "aa-statuspage-terraform-state"
+    key    = "terraform.tfstate"                    
+    region = "us-east-1"                          
   }
 }
 

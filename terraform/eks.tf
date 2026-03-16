@@ -9,11 +9,30 @@ resource "aws_eks_cluster" "main" {
     endpoint_private_access = true
   }
 
+  access_config {
+    authentication_mode                         = "API_AND_CONFIG_MAP"
+    bootstrap_cluster_creator_admin_permissions = true 
+  }
   depends_on = [
     aws_iam_role_policy_attachment.eks_cluster_policy
   ]
 }
 
+resource "aws_eks_access_entry" "aviad_access" {
+  cluster_name  = aws_eks_cluster.main.name            
+  principal_arn = "arn:aws:iam::992382545251:user/aviadbenyaakov" 
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "aviad_admin_policy" {
+  cluster_name  = aws_eks_cluster.main.name
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  principal_arn = aws_eks_access_entry.aviad_access.principal_arn
+
+  access_scope {
+    type = "cluster"
+  }
+}
 
 resource "aws_launch_template" "eks_nodes" {
   name_prefix = "status-page-nodes-lt-"
