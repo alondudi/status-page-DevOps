@@ -4,12 +4,3 @@ argo-cd:
       - --insecure
     ingress:
       enabled: false
-
-argocd-image-updater:
-  config:
-    registries:
-      - name: ECR
-        api_url: https://992382545251.dkr.ecr.us-east-1.amazonaws.com 
-        ping: yes
-        credentials: ext:/scripts/ecr-login.sh
-        credsexpire: 10h
