@@ -418,3 +418,33 @@ resource "aws_iam_role_policy_attachment" "external_dns" {
   policy_arn = aws_iam_policy.external_dns.arn
   role       = aws_iam_role.external_dns.name
 }
+
+data "aws_caller_identity" "current" {}
+
+data "aws_iam_policy_document" "image_updater_assume_role_policy" {
+  statement {
+    actions = ["sts:AssumeRoleWithWebIdentity"]
+    effect  = "Allow"
+
+    condition {
+      test     = "StringEquals"
+      variable = "${replace(aws_eks_cluster.main.identity[0].oidc[0].issuer, "https://", "")}:sub"
+      values   = ["system:serviceaccount:argocd:argocd-image-updater"]
+    }
+
+    principals {
+      identifiers = ["arn:aws:iam::${data.aws_caller_identity.current.account_id}:oidc-provider/${replace(aws_eks_cluster.main.identity[0].oidc[0].issuer, "https://", "")}"]
+      type        = "Federated"
+    }
+  }
+}
+
+resource "aws_iam_role" "argocd_image_updater_role" {
+  name               = "argocd-image-updater-role"
+  assume_role_policy = data.aws_iam_policy_document.image_updater_assume_role_policy.json
+}
+
+resource "aws_iam_role_policy_attachment" "image_updater_ecr_policy" {
+  role       = aws_iam_role.argocd_image_updater_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}

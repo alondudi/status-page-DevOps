@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd-image-updater
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: "https://argoproj.github.io/argo-helm"
+    targetRevision: 0.9.1
+    chart: argocd-image-updater
+    helm:
+      values: |
+        config:
+          registries:
+            - name: ECR
+              api_url: https://992382545251.dkr.ecr.us-east-1.amazonaws.com
+              ping: yes
+              credentials: ext:/scripts/ecr-login.sh
+              credsexpire: 10h
+        serviceAccount:
+          create: true
+          annotations:
+            eks.amazonaws.com/role-arn: arn:aws:iam::992382545251:role/argocd-image-updater-role
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
