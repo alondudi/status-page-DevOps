@@ -11,6 +11,8 @@ spec:
     chart: kube-prometheus-stack
     helm:
       values: |
+        crds:
+          enabled: false 
         grafana:
           adminPassword: "admin"
           service:
@@ -29,16 +31,3 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
-  ignoreDifferences:
-    - group: apiextensions.k8s.io
-      kind: CustomResourceDefinition
-      name: prometheuses.monitoring.coreos.com
-    - group: apiextensions.k8s.io
-      kind: CustomResourceDefinition
-      name: prometheusagents.monitoring.coreos.com
-    - group: apiextensions.k8s.io
-      kind: CustomResourceDefinition
-      name: alertmanagers.monitoring.coreos.com
-    - group: apiextensions.k8s.io
-      kind: CustomResourceDefinition
-      name: thanosrulers.monitoring.coreos.com
