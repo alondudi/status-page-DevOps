@@ -1,0 +1,18 @@
+{
+    "mcpServers": {
+        "EKS-Cluster-MCP": {
+            "command": "kubectl",
+            "args": [
+                "exec",
+                "-i",
+                "deploy/ai-mcp-bastion",
+                "-n",
+                "monitoring",
+                "--",
+                "npx",
+                "-y",
+                "kubectl-mcp-server"
+            ]
+        }
+    }
+}
