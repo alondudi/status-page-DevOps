@@ -20,6 +20,10 @@ spec:
             enabled: false
             patch:
               enabled: false
+        prometheus:
+          prometheusSpec:
+            serviceMonitorSelectorNilUsesHelmValues: false
+            serviceMonitorSelector: {}
   destination:
     server: "https://kubernetes.default.svc"
     namespace: monitoring
