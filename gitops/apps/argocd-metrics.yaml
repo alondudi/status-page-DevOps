@@ -6,12 +6,18 @@ metadata:
   labels:
     release: kube-prometheus-stack
 spec:
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: argocd-metrics
   namespaceSelector:
     matchNames:
       - argocd
+  selector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values:
+          - argocd-server
+          - argocd-repo-server
+          - argocd-application-controller
   endpoints:
     - port: metrics
       interval: 30s
+      path: /metrics
