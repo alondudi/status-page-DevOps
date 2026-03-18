@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: statuspage
+      POSTGRES_USER: dbadmin
+      POSTGRES_PASSWORD: :9Zt3=78LeIuK*A?
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    restart: always
+
+  web:
+    image: 992382545251.dkr.ecr.us-east-1.amazonaws.com/alon-aviad-repo:status-page-4.0
+    ports:
+      - "80:8000"
+    depends_on:
+      - db
+      - redis
+    restart: always
+
+  worker:
+    image: 992382545251.dkr.ecr.us-east-1.amazonaws.com/alon-aviad-repo:status-page-4.0
+    command: python3 statuspage/manage.py rqworker --with-scheduler
+    depends_on:
+      - db
+      - redis
+    restart: always
+
+volumes:
+  postgres_data:
