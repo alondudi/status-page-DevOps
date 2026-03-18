@@ -53,8 +53,8 @@ resource "aws_iam_role_policy_attachment" "ecr_read_only" {
 }
 
 resource "aws_iam_policy" "read_db_secret_policy" {
-  name        = "status-page-read-db-secret-policy-aa"
-  description = "Allow EKS nodes to read DB credentials from Secrets Manager"
+  name        = "status-page-read-secrets-policy-aa"
+  description = "Allow EKS nodes to read app secrets from Secrets Manager (DB + Grafana)"
 
   policy = jsonencode({
     Version = "2012-10-17"
@@ -65,7 +65,10 @@ resource "aws_iam_policy" "read_db_secret_policy" {
           "secretsmanager:GetSecretValue",
           "secretsmanager:DescribeSecret"
         ]
-        Resource = aws_secretsmanager_secret.db_credentials.arn
+        Resource = [
+          aws_secretsmanager_secret.db_credentials.arn,
+          aws_secretsmanager_secret.grafana_credentials.arn
+        ]
       }
     ]
   })
