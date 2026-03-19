@@ -59,7 +59,7 @@ resource "aws_eks_node_group" "nodes" {
   }
 
   scaling_config {
-    desired_size = 2 
+    desired_size = 3 
     max_size     = 4
     min_size     = 1 
   }
@@ -70,7 +70,15 @@ resource "aws_eks_node_group" "nodes" {
     aws_iam_role_policy_attachment.ecr_read_only
   ]
 }
- 
+
+resource "aws_eks_addon" "ebs_csi" {
+  cluster_name = aws_eks_cluster.main.name
+  addon_name   = "aws-ebs-csi-driver"
+
+  depends_on = [
+    aws_eks_node_group.nodes
+  ]
+}
 
 output "eks_cluster_name" {
   value = aws_eks_cluster.main.name
