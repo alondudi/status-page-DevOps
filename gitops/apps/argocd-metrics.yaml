@@ -1,5 +1,5 @@
 apiVersion: monitoring.coreos.com/v1
-kind: ServiceMonitor
+kind: PodMonitor
 metadata:
   name: argocd-metrics
   namespace: monitoring
@@ -17,6 +17,7 @@ spec:
           - argocd-server
           - argocd-repo-server
           - argocd-metrics
-  endpoints:
+          - argocd-application-controller
+  podMetricsEndpoints:
     - port: metrics
       interval: 30s
