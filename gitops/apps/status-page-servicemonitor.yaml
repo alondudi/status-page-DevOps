@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: status-page-django
+  namespace: status-page
+  labels:
+    app: status-page
+spec:
+  namespaceSelector:
+    matchNames:
+      - status-page
+  selector:
+    matchLabels:
+      app: status-page
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 30s
+      scheme: http
+
