@@ -4,8 +4,7 @@ metadata:
   name: ecr-pull-secret-init
   namespace: status-page
   annotations:
-    # ArgoCD hook: runs once on sync, before other resources are applied
-    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook: Sync
     argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
 spec:
   template:
