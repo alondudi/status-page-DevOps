@@ -431,6 +431,12 @@ data "aws_iam_policy_document" "image_updater_assume_role_policy" {
 
     condition {
       test     = "StringEquals"
+      variable = "${replace(aws_eks_cluster.main.identity[0].oidc[0].issuer, "https://", "")}:aud"
+      values   = ["sts.amazonaws.com"]
+    }
+
+    condition {
+      test     = "StringEquals"
       variable = "${replace(aws_eks_cluster.main.identity[0].oidc[0].issuer, "https://", "")}:sub"
       values   = ["system:serviceaccount:argocd:argocd-image-updater"]
     }

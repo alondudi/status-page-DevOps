@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ecr-pull-secret-init
+  namespace: status-page
+  annotations:
+    # ArgoCD hook: runs once on sync, before other resources are applied
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  template:
+    spec:
+      serviceAccountName: ecr-refresher
+      restartPolicy: OnFailure
+      containers:
+        - name: ecr-refresher
+          image: amazon/aws-cli:2.15.30
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -e
+
+              echo "Fetching ECR token (initial bootstrap)..."
+              ECR_PASSWORD=$(aws ecr get-login-password --region us-east-1)
+
+              echo "Creating/updating ecr-pull-secret in status-page namespace..."
+              kubectl create secret docker-registry ecr-pull-secret \
+                --namespace=status-page \
+                --docker-server=992382545251.dkr.ecr.us-east-1.amazonaws.com \
+                --docker-username=AWS \
+                --docker-password="${ECR_PASSWORD}" \
+                --dry-run=client -o yaml | kubectl apply -f -
+
+              echo "Bootstrap complete!"
+          resources:
+            requests:
+              cpu: "50m"
+              memory: "64Mi"
+            limits:
+              cpu: "100m"
+              memory: "128Mi"

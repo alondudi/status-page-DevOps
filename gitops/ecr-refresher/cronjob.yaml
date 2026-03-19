@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ecr-pull-secret-refresher
+  namespace: status-page
+spec:
+  # Run every 6 hours (ECR tokens expire after 12h)
+  schedule: "0 */6 * * *"
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: ecr-refresher
+          restartPolicy: OnFailure
+          containers:
+            - name: ecr-refresher
+              # aws-cli + kubectl in a single lightweight image
+              image: amazon/aws-cli:2.15.30
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  set -e
+
+                  echo "Fetching ECR token..."
+                  ECR_PASSWORD=$(aws ecr get-login-password --region us-east-1)
+
+                  echo "Updating ecr-pull-secret in status-page namespace..."
+                  kubectl create secret docker-registry ecr-pull-secret \
+                    --namespace=status-page \
+                    --docker-server=992382545251.dkr.ecr.us-east-1.amazonaws.com \
+                    --docker-username=AWS \
+                    --docker-password="${ECR_PASSWORD}" \
+                    --dry-run=client -o yaml | kubectl apply -f -
+
+                  echo "Done! ECR pull secret refreshed successfully."
+              resources:
+                requests:
+                  cpu: "50m"
+                  memory: "64Mi"
+                limits:
+                  cpu: "100m"
+                  memory: "128Mi"
