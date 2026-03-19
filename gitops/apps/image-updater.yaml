@@ -17,7 +17,7 @@ spec:
               api_url: https://992382545251.dkr.ecr.us-east-1.amazonaws.com
               prefix: 992382545251.dkr.ecr.us-east-1.amazonaws.com
               ping: yes
-              credentials: ext:/scripts/ecr-login.sh # <--- השורה החסרה! כאן אנחנו קוראים לסקריפט
+              credentials: ext:/scripts/ecr-login.sh
               credsexpire: 10h
               
         authScripts:
@@ -25,7 +25,8 @@ spec:
           scripts:
             ecr-login.sh: |
               #!/bin/sh
-              aws ecr get-login-password --region us-east-1
+              TOKEN=$(aws ecr get-login-password --region us-east-1)
+              echo "AWS:${TOKEN}"
               
         serviceAccount:
           create: true
