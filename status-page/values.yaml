@@ -2,7 +2,7 @@ replicaCount: 2
 
 image:
   repository: "992382545251.dkr.ecr.us-east-1.amazonaws.com/alon-aviad-repo"
-  tag: "status-page-17"
+  tag: "status-page-18"
 
 app:
   port: 8000
