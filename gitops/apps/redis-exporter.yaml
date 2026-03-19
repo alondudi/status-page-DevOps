@@ -21,7 +21,7 @@ spec:
           imagePullPolicy: IfNotPresent
           env:
             - name: REDIS_ADDR
-              value: "redis://redis.status-page.svc.cluster.local:6379"
+              value: "redis://status-page-redis-aa.7fftml.0001.use1.cache.amazonaws.com:6379"
           ports:
             - name: metrics
               containerPort: 9121
