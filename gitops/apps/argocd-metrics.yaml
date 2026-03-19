@@ -20,3 +20,8 @@ spec:
   endpoints:
     - port: metrics
       interval: 30s
+      relabelings:
+        - action: replace
+          sourceLabels:
+            - __meta_kubernetes_service_label_app_kubernetes_io_name
+          targetLabel: job
