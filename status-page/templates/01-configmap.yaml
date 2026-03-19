@@ -3,10 +3,26 @@ kind: ConfigMap
 metadata:
   name: status-page-config
 data:
+  # Site Configuration
+  SITE_URL: "{{ .Values.app.siteUrl }}"
+  SECRET_KEY: "HDdnCJ%y4oKGSB%UIpOX$1R0*89HZoD)U%Yil2%o&@L8fypVC-"
+
+  # Database Configuration
   DB_HOST: "{{ .Values.database.host }}"
   DB_PORT: "{{ .Values.database.port }}"
   DB_NAME: "{{ .Values.database.name }}"
   DB_USER: "{{ .Values.database.user }}"
 
+  # Redis Configuration
   REDIS_HOST: "{{ .Values.redis.host }}"
   REDIS_PORT: "{{ .Values.redis.port }}"
+
+  # Email Configuration
+  EMAIL_SERVER: "{{ .Values.email.server }}"
+  EMAIL_PORT: "{{ .Values.email.port }}"
+  EMAIL_USERNAME: "{{ .Values.email.username }}"
+  EMAIL_PASSWORD: "koseodvxsnsncpqo"
+  EMAIL_USE_SSL: "{{ .Values.email.use_ssl }}"
+  EMAIL_USE_TLS: "{{ .Values.email.use_tls }}"
+  EMAIL_TIMEOUT: "{{ .Values.email.timeout }}"
+  EMAIL_FROM_EMAIL: "{{ .Values.email.username }}"

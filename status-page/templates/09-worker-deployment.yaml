@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: status-page-worker
+  labels:
+    app: "{{ .Values.app.name }}-worker"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "{{ .Values.app.name }}-worker"
+  template:
+    metadata:
+      labels:
+        app: "{{ .Values.app.name }}-worker"
+    spec:
+      imagePullSecrets:
+        - name: ecr-pull-secret
+      containers:
+      - name: status-page-worker
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        command: ["python3", "statuspage/manage.py", "rqworker", "--with-scheduler"]
+        envFrom:
+        - configMapRef:
+            name: status-page-config
+        - secretRef:
+            name: status-page-secret
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"

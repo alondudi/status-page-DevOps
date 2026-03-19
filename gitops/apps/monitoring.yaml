@@ -12,6 +12,9 @@ spec:
     helm:
       values: |
         grafana:
+          persistence:
+            enabled: true
+            size: 5Gi
           admin:
             existingSecret: grafana-admin-credentials
             userKey: admin-user
@@ -25,6 +28,13 @@ spec:
               enabled: false
         prometheus:
           prometheusSpec:
+            storageSpec:
+              volumeClaimTemplate:
+                spec:
+                  accessModes: ["ReadWriteOnce"]
+                  resources:
+                    requests:
+                      storage: 10Gi
             serviceMonitorSelectorNilUsesHelmValues: false
             serviceMonitorSelector: {}
             serviceMonitorNamespaceSelector: {}
