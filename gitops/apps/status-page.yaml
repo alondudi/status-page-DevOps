@@ -11,6 +11,7 @@ metadata:
     argocd-image-updater.argoproj.io/web.helm.image-tag: image.tag
     argocd-image-updater.argoproj.io/write-back-method: git
     argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/write-back-method: argocd
 spec:
   project: default
   source:
