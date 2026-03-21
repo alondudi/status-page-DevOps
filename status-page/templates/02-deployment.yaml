@@ -21,6 +21,22 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         ports:
         - containerPort: {{ .Values.app.port }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.ingress.healthCheckPath | default "/" }}
+            port: {{ .Values.app.port }}
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.ingress.healthCheckPath | default "/" }}
+            port: {{ .Values.app.port }}
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          successThreshold: 1
+          failureThreshold: 3
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
         envFrom:
