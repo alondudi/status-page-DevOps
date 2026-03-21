@@ -21,6 +21,8 @@ spec:
         image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
         ports:
         - containerPort: {{ .Values.app.port }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
         envFrom:
         - configMapRef:
             name: status-page-config

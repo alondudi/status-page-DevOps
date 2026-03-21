@@ -9,6 +9,14 @@ app:
   name: "status-page"
   siteUrl: "https://statuspage-aa.click/"
 
+resources:
+  requests:
+    cpu: "100m"
+    memory: "256Mi"
+  limits:
+    cpu: "500m"
+    memory: "512Mi"
+
 database:
   host: "status-page-db-aa.cx248m4we6k7.us-east-1.rds.amazonaws.com"
   port: "5432"
