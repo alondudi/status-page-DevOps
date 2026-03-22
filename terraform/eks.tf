@@ -34,6 +34,22 @@ resource "aws_eks_access_policy_association" "aviad_admin_policy" {
   }
 }
 
+resource "aws_eks_access_entry" "github_actions_access" {
+  cluster_name  = aws_eks_cluster.main.name            
+  principal_arn = aws_iam_role.github_actions.arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "github_actions_admin_policy" {
+  cluster_name  = aws_eks_cluster.main.name
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+  principal_arn = aws_eks_access_entry.github_actions_access.principal_arn
+
+  access_scope {
+    type = "cluster"
+  }
+}
+
 resource "aws_launch_template" "eks_nodes" {
   name_prefix = "status-page-nodes-lt-"
 
