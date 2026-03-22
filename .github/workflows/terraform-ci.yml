@@ -1,14 +1,17 @@
 name: Terraform CI & Cost Estimation
 
 on:
+  workflow_dispatch: # Allows you to trigger it manually from the GitHub UI
   push:
     branches:
       - main
     paths:
       - 'terraform/**'
+      - '.github/workflows/**'
   pull_request:
     paths:
       - 'terraform/**'
+      - '.github/workflows/**'
 
 permissions:
   id-token: write
