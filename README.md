@@ -42,23 +42,6 @@ Infrastructure-as-code (Terraform), Kubernetes deployment (Helm), and GitOps (Ar
 
 ---
 
-## Tech stack
-
-End-to-end stack for the Status Page platform (application + cloud + cluster).
-
-| Layer | Technologies |
-|--------|----------------|
-| **Application** | [Python](https://www.python.org/) 3.10+, [Django](https://www.djangoproject.com/), [Gunicorn](https://gunicorn.org/), [WhiteNoise](https://whitenoise.readthedocs.io/) (static files), [Django REST Framework](https://www.django-rest-framework.org/), [django-rq](https://github.com/rq/django-rq) + [Redis](https://redis.io/) (queues / cache), [PostgreSQL](https://www.postgresql.org/) (via `psycopg2`), optional [django-prometheus](https://github.com/korfuri/django-prometheus) for `/metrics` |
-| **Container** | [Docker](https://www.docker.com/), images stored in **Amazon [ECR](https://aws.amazon.com/ecr/)** |
-| **Cloud (AWS)** | [Amazon EKS](https://aws.amazon.com/eks/), [VPC](https://aws.amazon.com/vpc/) + subnets + [NAT Gateway](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-nat-gateway.html), [RDS for PostgreSQL](https://aws.amazon.com/rds/postgresql/), [ElastiCache for Redis](https://aws.amazon.com/elasticache/redis/), [Application Load Balancer](https://aws.amazon.com/elasticloadbalancing/application-load-balancer/) (via Ingress), [Secrets Manager](https://aws.amazon.com/secrets-manager/), [IAM](https://aws.amazon.com/iam/) + **OIDC** for GitHub Actions |
-| **Kubernetes** | [Kubernetes](https://kubernetes.io/), [Helm](https://helm.sh/) charts (`status-page/`), [AWS Load Balancer Controller](https://kubernetes-sigs.github.io/aws-load-balancer-controller/), [External Secrets Operator](https://external-secrets.io/) |
-| **GitOps & delivery** | [Argo CD](https://argo-cd.readthedocs.io/), [Argo CD Image Updater](https://argocd-image-updater.readthedocs.io/) (optional tag bumps from ECR), [Cluster Autoscaler](https://github.com/kubernetes/autoscaler/tree/master/cluster-autoscaler) |
-| **Observability** | [Prometheus](https://prometheus.io/), [Grafana](https://grafana.com/), [kube-prometheus-stack](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack) (Helm), [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator) + **ServiceMonitors**, [redis_exporter](https://github.com/oliver006/redis_exporter) |
-| **Infrastructure as code** | [Terraform](https://www.terraform.io/) (`terraform/`), [Terraform AWS modules](https://registry.terraform.io/namespaces/terraform-aws-modules) (e.g. VPC), optional [tflint](https://github.com/terraform-linters/tflint) / [tfsec](https://github.com/aquasecurity/tfsec) / [Infracost](https://www.infracost.io/) in CI |
-| **CI/CD** | [GitHub Actions](https://github.com/features/actions) — app repo: build & push to ECR; this repo: Terraform validate / plan / apply |
-
----
-
 ## What this repo does
 
 | Layer | Tooling | Purpose |
