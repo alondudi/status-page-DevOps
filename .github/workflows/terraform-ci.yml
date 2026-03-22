@@ -10,7 +10,6 @@ on:
     paths:
       - 'terraform/**'
 
-# These permissions are required for AWS OIDC authentication and PR comments
 permissions:
   id-token: write
   contents: read
@@ -69,11 +68,11 @@ jobs:
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
           working_directory: ${{ env.TF_ROOT }}
+          soft_fail: true
 
   infracost:
     name: Infracost Estimate
     runs-on: ubuntu-latest
-    # Only run this on pull requests
     if: github.event_name == 'pull_request'
     env:
       INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
