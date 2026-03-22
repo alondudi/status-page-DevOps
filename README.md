@@ -1,5 +1,17 @@
 # Status Page — DevOps & GitOps Platform
 
+[![Terraform CI](https://github.com/alondudi/status-page-DevOps/actions/workflows/terraform-ci.yml/badge.svg?branch=main)](https://github.com/alondudi/status-page-DevOps/actions/workflows/terraform-ci.yml)
+[![App CI](https://github.com/alondudi/status-page-app/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/alondudi/status-page-app/actions/workflows/ci.yml)
+
+[![Terraform](https://img.shields.io/badge/Terraform-IaC-623CE4?logo=terraform&logoColor=white)](https://www.terraform.io/)
+[![AWS](https://img.shields.io/badge/AWS-EKS%20%7C%20RDS%20%7C%20ElastiCache-FF9900?logo=amazon-aws&logoColor=white)](https://aws.amazon.com/)
+[![Kubernetes](https://img.shields.io/badge/Kubernetes-326CE5?logo=kubernetes&logoColor=white)](https://kubernetes.io/)
+[![Helm](https://img.shields.io/badge/Helm-Charts-0F1689?logo=helm&logoColor=white)](https://helm.sh/)
+[![Argo CD](https://img.shields.io/badge/Argo%20CD-GitOps-EF7B4D?logo=argo&logoColor=white)](https://argo-cd.readthedocs.io/)
+[![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C?logo=prometheus&logoColor=white)](https://prometheus.io/)
+[![Grafana](https://img.shields.io/badge/Grafana-Dashboards-F46800?logo=grafana&logoColor=white)](https://grafana.com/)
+[![Docker](https://img.shields.io/badge/Docker-ECR-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+
 ## 🔗 Related repositories
 
 | Repository | Purpose |
