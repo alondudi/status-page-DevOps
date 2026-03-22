@@ -1,63 +1,281 @@
-# Status Page DevOps Platform
+# Status Page — DevOps & GitOps Platform
 
-This repository houses the complete Infrastructure as Code (IaC) and Continuous Deployment (GitOps) configuration for the highly-available Status Page application.
+## 🔗 Related repositories
 
-## 🏗️ Architecture Overview
+| Repository | Purpose |
+|------------|---------|
+| **[status-page-app](https://github.com/alondudi/status-page-app)** | Django Status Page **source code**, `Dockerfile`, and **GitHub Actions** that build & push images to **Amazon ECR**. Clone URL: `https://github.com/alondudi/status-page-app.git` |
+| **This repo (`status-page-DevOps`)** | AWS (Terraform), Helm chart, Argo CD GitOps manifests |
 
-The platform is designed for total reliability, autonomous self-healing, and infinite scalability. It completely separates the application source code from the infrastructure deployment code.
 
-1. **Infrastructure (Terraform):** Fully autonomous provisioning of the underlying AWS environment, including the VPC, EKS Cluster, RDS PostgreSQL Database, and ElastiCache Redis.
-2. **Kubernetes (Helm):** Dynamic templating of the Django application, carefully tuned with CPU/Memory limits and HTTP Liveness/Readiness probes for zero-downtime rolling updates.
-3. **Continuous Deployment (ArgoCD):** 100% automated GitOps synchronizations. As soon as a new Docker image is built by GitHub Actions, the ArgoCD Image Updater detects it in ECR, automatically commits the new tag back to this repository, and ArgoCD seamlessly rolls out the update.
-4. **Observability Stack:** A robust monitoring suite featuring Prometheus and Grafana. Prometheus autonomously scrapes live health metrics from Django, Redis, and ArgoCD via dedicated ServiceMonitors, while Grafana safely persists the data on dedicated AWS EBS physical volumes.
+Infrastructure-as-code (Terraform), Kubernetes deployment (Helm), and GitOps (Argo CD) for a **Django-based Status Page** running on **AWS EKS**, backed by **Amazon RDS (PostgreSQL)** and **Amazon ElastiCache (Redis)**.
 
-## 📂 Repository Structure
+> **Related repository:** application source and Docker build live in [`status-page-app`](https://github.com/alondudi/status-page-app) (separate repo). This repo is the **cluster + cloud** source of truth.
+
+---
+
+## Table of contents
+
+- [What this repo does](#what-this-repo-does)
+- [High-level architecture](#high-level-architecture)
+- [Repository layout](#repository-layout)
+- [Prerequisites](#prerequisites)
+- [Bootstrap: from zero to running](#bootstrap-from-zero-to-running)
+- [Day-2 operations](#day-2-operations)
+- [CI/CD](#cicd)
+- [Observability](#observability)
+- [Security notes](#security-notes)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## What this repo does
+
+| Layer | Tooling | Purpose |
+|--------|---------|---------|
+| **Cloud** | Terraform (`terraform/`) | VPC, EKS, node groups, RDS, ElastiCache, ECR, IAM, ALB controller hooks, Argo CD install (Helm), secrets in Secrets Manager, etc. |
+| **Cluster apps** | Argo CD (`gitops/`) | App-of-apps deploys monitoring, status-page Helm chart, autoscaler, metrics exporters, optional tooling |
+| **Application on K8s** | Helm (`status-page/`) | Deployment, worker, Services, Ingress (ALB), ConfigMap, External Secrets, probes, optional `ServiceMonitor` |
+
+---
+
+## High-level architecture
 
 ```text
-├── .github/workflows/   # CI/CD pipeline automation for infrastructure and GitOps tasks
-├── gitops/              # ArgoCD declarative manifests (The "Source of Truth" for the cluster)
-│   ├── apps/            # Application definitions (monitoring, image-updater, status-page)
-│   └── root-app.yaml    # The App-of-Apps root controller
-├── status-page/         # The custom Helm Chart defining the Kubernetes deployment of the Django App
-│   ├── templates/       # Kubernetes manifests (Deployment, Service, Ingress, HPA)
-│   └── values.yaml      # Environment-specific configuration and image tags
-└── terraform/           # Infrastructure as Code
-    ├── eks.tf           # Elastic Kubernetes Service and Node Group definitions
-    ├── databases.tf     # RDS (PostgreSQL) and ElastiCache (Redis)
-    └── vpc.tf           # Networking, Subnets, and NAT Gateways
+                    Internet
+                        │
+                        ▼
+              AWS Load Balancer Controller
+                        │
+            Ingress (ALB) → Service → Pods
+                        │
+        ┌───────────────┼───────────────┐
+        ▼               ▼               ▼
+   Django (web)    RQ worker      Prometheus/Grafana
+   Gunicorn :8000   (background)   (monitoring NS)
+        │               │
+        └───────┬───────┘
+                ▼
+    RDS PostgreSQL          ElastiCache Redis
+    (private subnets)       (private subnets)
 ```
 
-## 🚀 Deployment Playbook
+- **Web**: Django + Gunicorn (container port **8000**; Service maps **80 → 8000**).
+- **Worker**: `manage.py rqworker --with-scheduler` for **django-rq** queues (emails, async work).
+- **Data**: PostgreSQL and Redis are **managed AWS services**; Kubernetes uses **`ExternalName` Services** (`db`, `redis`) to stable DNS names where applicable.
+- **Ingress**: ALB annotations in `status-page/templates/08-ingress.yaml` (HTTP/HTTPS, health checks).
 
-### 1. Provision AWS Infrastructure
-Before accessing the cluster, you must provision the AWS baseline resources:
+---
+
+## Repository layout
+
+```text
+.
+├── terraform/                 # AWS + EKS + data stores + Argo CD (Helm) + IAM/OIDC pieces
+├── gitops/
+│   ├── root-app.yaml          # Argo CD "app of apps" → syncs everything under gitops/apps
+│   └── apps/                  # Individual Argo CD Application manifests + raw K8s where needed
+├── status-page/               # Helm chart for the Status Page workload (namespace: status-page)
+│   ├── Chart.yaml
+│   ├── values.yaml            # Image tag, DB/Redis endpoints, ingress host, resources, etc.
+│   └── templates/
+├── docker/                    # Local compose for dev (Postgres + Redis + optional image)
+├── .github/workflows/         # Terraform validate/lint + optional apply + Infracost on PRs
+└── README.md                  # This file
+```
+
+### GitOps apps (`gitops/apps/`)
+
+Typical manifests in this repo (names may evolve):
+
+| Manifest | Role |
+|----------|------|
+| `status-page.yaml` | Argo CD **Application** for the Helm chart; **Argo CD Image Updater** annotations |
+| `monitoring.yaml` | **kube-prometheus-stack** (Prometheus, Grafana, operators) |
+| `grafana-secret.yaml` | ExternalSecret / credentials wiring for Grafana admin |
+| `redis-exporter.yaml` | **redis_exporter** Deployment + Service + ServiceMonitor → ElastiCache |
+| `cluster-autoscaler.yaml` | Cluster Autoscaler |
+| `image-updater.yaml` | Argo CD Image Updater configuration |
+| `argocd-metrics.yaml` + `argocd-metrics-services.yaml` | Scrape Argo CD metrics |
+| `ai-mcp-bastion.yaml` | Optional tooling pod (if used) |
+| `status-page-servicemonitor.yaml` | Extra ServiceMonitor for Django `/metrics` (if not using chart-only monitor) |
+
+> **Note:** The Helm chart can also render a `ServiceMonitor` when `metrics.enabled: true` (`status-page/templates/10-service-monitor.yaml`). If you maintain **both** chart and standalone YAML, ensure you do not duplicate conflicting scrape configs.
+
+---
+
+## Prerequisites
+
+- **AWS account** with permissions for EKS, VPC, RDS, ElastiCache, IAM, ECR, etc.
+- **Tools locally:** `terraform` (≥ 1.x), `kubectl`, `helm` (optional), **AWS CLI** configured.
+- **GitHub:**  
+  - OIDC / IAM roles for **Terraform apply** (see workflow `AWS_ROLE_ARN` secret).  
+  - OIDC role for **app CI** pushing to ECR (`github-actions-ecr-role-AA` in app workflow).
+- **Domains / TLS:** Ingress uses ACM certificate ARN in `values.yaml` when set (`certificateArn`).
+
+---
+
+## Bootstrap: from zero to running
+
+### 1) Provision cloud infrastructure
+
 ```bash
 cd terraform
 terraform init
 terraform apply
 ```
-*This command safely builds the VPC, EKS Cluster, RDS Database, and Redis Cache from scratch.*
 
-### 2. Connect to the EKS Cluster
-Once Terraform completes, securely connect your local `kubectl` to the new EKS cluster:
+Creates (among other things) VPC, EKS cluster + nodes, RDS, Redis, ECR, Argo CD (via Terraform Helm release), and supporting IAM/security groups.
+
+### 2) Configure `kubectl`
+
 ```bash
 aws eks update-kubeconfig --region us-east-1 --name status-page-cluster-aa
 ```
 
-### 3. Bootstrap ArgoCD (GitOps)
-The entire application stack is deployed through ArgoCD. Install ArgoCD on the cluster, and then apply the `root-app.yaml` manifest. ArgoCD will autonomously read this repository and deploy Prometheus, Grafana, the Image Updater, and the Status Page.
+(Adjust **region** / **cluster name** if you changed them in Terraform.)
+
+### 3) GitOps: deploy workloads
+
+Argo CD is installed by Terraform; sync the **root application**:
+
 ```bash
-kubectl apply -k https://github.com/argoproj/argo-cd/manifests/crds\?ref\=stable
 kubectl apply -f gitops/root-app.yaml
 ```
 
-## 🔄 The CI/CD Pipeline Flow
+Argo CD will reconcile `gitops/apps/` and deploy:
 
-This project uses an advanced GitOps deployment strategy:
-1. **Developer Push:** A developer pushes Python code to the `status-page-app` repository.
-2. **GitHub Actions CI:** The CI pipeline builds the code, runs tests, and pushes a new tagged container image to **Amazon ECR**.
-3. **ArgoCD Image Updater:** Constantly watches ECR. When it sees the new tag, it automatically commits that tag back to this repository.
-4. **ArgoCD Server:** Detects the commit in this repository and safely performs a rolling update to the live EKS cluster without dropping a single user request.
+- `kube-prometheus-stack` into `monitoring`
+- `status-page` Helm chart into `status-page`
+- other configured apps
 
-## 🛡️ Disaster Recovery
-Because 100% of the environment is defined declaratively using Terraform and ArgoCD, if the `us-east-1` AWS region experiences an unrecoverable failure, the entire company's architecture can be rebuilt from scratch into a new region in less than 20 minutes using a single `terraform apply` command.
+### 4) Build and push the application image
+
+Application Dockerfile and CI live in **`status-page-app`**. On push to `main`, GitHub Actions:
+
+- Builds and pushes:  
+  `992382545251.dkr.ecr.us-east-1.amazonaws.com/alon-aviad-repo:status-page-<run_number>`
+
+**Argo CD Image Updater** (annotations on `gitops/apps/status-page.yaml`) can update `status-page/values.yaml` `image.tag` to match new ECR tags (regex `^status-page-[0-9]+$`), then Argo CD rolls out the Deployment.
+
+---
+
+## Day-2 operations
+
+### Change configuration (non-secret)
+
+Edit `status-page/values.yaml` (replicas, resources, ingress host, `metrics.enabled`, etc.) and merge to `main`; Argo CD syncs.
+
+### Database password
+
+RDS credentials are sourced from **AWS Secrets Manager** via **External Secrets** (`status-page/templates/07-external-secret.yaml`) into Kubernetes Secret `status-page-secret` (key `DB_PASSWORD`).
+
+### Verify workloads
+
+```bash
+kubectl get pods -n status-page
+kubectl get pods -n monitoring
+kubectl get ingress -n status-page
+```
+
+### Local development stack (optional)
+
+`docker/docker-compose.yml` spins up Postgres + Redis + (optionally) pinned ECR images for web/worker. Useful for quick integration tests; **do not** commit production secrets into compose files long-term.
+
+---
+
+## CI/CD
+
+### This repo (`status-page-DevOps`)
+
+Workflow: `.github/workflows/terraform-ci.yml`
+
+- **On PR / push** (paths `terraform/**`): `fmt`, `init`, `validate`, **tflint**, **tfsec** (soft fail).
+- **On PR**: **Infracost** comment (requires `INFRACOST_API_KEY`).
+- **On push to `main`**: `terraform apply` (uses `AWS_ROLE_ARN` secret, **production** environment — may require manual approval).
+
+### Application repo (`status-page-app`)
+
+Workflow: `.github/workflows/ci.yml`
+
+- **On push to `main`**: build Docker image and push to **ECR** with tag `status-page-${{ github.run_number }}`.
+
+---
+
+## Observability
+
+### Stack
+
+- **kube-prometheus-stack** (`gitops/apps/monitoring.yaml`): Prometheus + Grafana + Prometheus Operator.
+- **Persistence**: Grafana (5Gi) and Prometheus (10Gi) PVCs configured in Helm values.
+- **Scrape config**: `serviceMonitorSelector: {}` and `serviceMonitorNamespaceSelector: {}` so **ServiceMonitors in any namespace** are picked up.
+
+### Django metrics
+
+- Application should expose Prometheus metrics (e.g. **`django-prometheus`**) at **`/metrics`** on the app port.
+- Helm: `metrics.enabled: true` renders `ServiceMonitor` targeting Service port named **`http`**, path `/metrics`.
+
+### Redis (ElastiCache)
+
+- **`redis_exporter`** in `monitoring` (`gitops/apps/redis-exporter.yaml`) scrapes Redis; `ServiceMonitor` on port `metrics`.
+
+### Grafana
+
+- Service type **LoadBalancer** (NLB class) for external access; admin credentials via Kubernetes Secret (see `grafana-secret` + Terraform Secrets Manager wiring).
+
+---
+
+## Security notes
+
+1. **Do not store long-lived secrets in Git**  
+   The Helm chart’s `ConfigMap` currently includes sensitive fields in some revisions (e.g. `SECRET_KEY`, email app passwords). **Recommended:** move all secrets to **AWS Secrets Manager** + **ExternalSecret**, and keep ConfigMap non-sensitive only.
+
+2. **Least privilege**  
+   Review IAM roles for GitHub OIDC (Terraform apply vs ECR push) and EKS node/instance roles.
+
+3. **Network**  
+   RDS and Redis security groups should allow traffic only from the VPC / EKS data plane, not from the public internet.
+
+4. **Argo CD**  
+   Protect the Argo CD UI/API; use strong admin passwords and consider SSO for teams.
+
+---
+
+## Troubleshooting
+
+| Symptom | Things to check |
+|---------|------------------|
+| Pods `ImagePullBackOff` | ECR pull secret `ecr-pull-secret`, image tag exists, IAM/ECR permissions |
+| App not reachable | ALB controller running, Ingress status, target group health, security groups |
+| DB connection errors | RDS security group, `DB_*` env from ConfigMap/Secret, RDS endpoint |
+| Redis connection errors | ElastiCache SG, `REDIS_*` env, `ExternalName` Service |
+| RQ / emails not processing | `status-page-worker` pod running, Redis reachable, SMTP settings |
+| No Prometheus metrics | `/metrics` returns 200 from inside cluster; Service port name `http`; `ServiceMonitor` labels/selectors; `metrics.enabled` |
+| Terraform CI fails | `terraform validate` output, AWS OIDC role trust policy, backend config |
+
+---
+
+## Contributing
+
+1. Use **feature branches** and PRs for Terraform and GitOps changes.
+2. Run `terraform fmt` and ensure CI passes before merge.
+3. For production applies, coordinate **maintenance windows** and review **Infracost** / plan output.
+
+---
+
+## License
+
+Specify your license here (e.g. MIT, Apache-2.0, or proprietary).
+
+---
+
+## Maintainer quick reference
+
+| Item | Location |
+|------|-----------|
+| App image repo / CI | `status-page-app` |
+| Image tag in cluster | `status-page/values.yaml` → `image.tag` |
+| Helm chart | `status-page/` |
+| Argo CD root | `gitops/root-app.yaml` |
+| Prometheus stack | `gitops/apps/monitoring.yaml` |
+| Terraform entry | `terraform/` |
