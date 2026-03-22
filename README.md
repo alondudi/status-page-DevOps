@@ -122,12 +122,12 @@ Typical manifests in this repo (names may evolve):
 |----------|------|
 | `status-page.yaml` | Argo CD **Application** for the Helm chart; **Argo CD Image Updater** annotations |
 | `monitoring.yaml` | **kube-prometheus-stack** (Prometheus, Grafana, operators) |
+| `image-updater.yaml` | Argo CD Image Updater configuration |
+| `ai-mcp-bastion.yaml` | Optional tooling pod (if used) |
+| `cluster-autoscaler.yaml` | Cluster Autoscaler |
 | `grafana-secret.yaml` | ExternalSecret / credentials wiring for Grafana admin |
 | `redis-exporter.yaml` | **redis_exporter** Deployment + Service + ServiceMonitor → ElastiCache |
-| `cluster-autoscaler.yaml` | Cluster Autoscaler |
-| `image-updater.yaml` | Argo CD Image Updater configuration |
 | `argocd-metrics.yaml` + `argocd-metrics-services.yaml` | Scrape Argo CD metrics |
-| `ai-mcp-bastion.yaml` | Optional tooling pod (if used) |
 | `status-page-servicemonitor.yaml` | Extra ServiceMonitor for Django `/metrics` (if not using chart-only monitor) |
 
 > **Note:** The Helm chart can also render a `ServiceMonitor` when `metrics.enabled: true` (`status-page/templates/10-service-monitor.yaml`). If you maintain **both** chart and standalone YAML, ensure you do not duplicate conflicting scrape configs.
@@ -285,27 +285,4 @@ Workflow: `.github/workflows/ci.yml`
 
 ---
 
-## Contributing
-
-1. Use **feature branches** and PRs for Terraform and GitOps changes.
-2. Run `terraform fmt` and ensure CI passes before merge.
-3. For production applies, coordinate **maintenance windows** and review **Infracost** / plan output.
-
----
-
-## License
-
-Specify your license here (e.g. MIT, Apache-2.0, or proprietary).
-
----
-
-## Maintainer quick reference
-
-| Item | Location |
-|------|-----------|
-| App image repo / CI | `status-page-app` |
-| Image tag in cluster | `status-page/values.yaml` → `image.tag` |
-| Helm chart | `status-page/` |
-| Argo CD root | `gitops/root-app.yaml` |
-| Prometheus stack | `gitops/apps/monitoring.yaml` |
-| Terraform entry | `terraform/` |
+Author Alon Dahan
