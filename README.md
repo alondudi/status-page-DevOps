@@ -28,7 +28,6 @@ Infrastructure-as-code (Terraform), Kubernetes deployment (Helm), and GitOps (Ar
 
 ## Table of contents
 
-- [Tech stack](#tech-stack)
 - [What this repo does](#what-this-repo-does)
 - [High-level architecture](#high-level-architecture)
 - [Repository layout](#repository-layout)
