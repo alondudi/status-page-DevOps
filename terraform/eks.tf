@@ -67,7 +67,7 @@ resource "aws_eks_node_group" "nodes" {
   node_group_name = "status-page-node-group-aa"
   node_role_arn   = aws_iam_role.eks_node_role.arn
   subnet_ids      = module.vpc.private_subnets
-  instance_types  = ["t3.medium"]
+  instance_types  = ["t3.large"]
 
   launch_template {
     id      = aws_launch_template.eks_nodes.id
@@ -75,8 +75,8 @@ resource "aws_eks_node_group" "nodes" {
   }
 
   scaling_config {
-    desired_size = 4 
-    max_size     = 5
+    desired_size = 3 
+    max_size     = 4
     min_size     = 2 
   }
 
