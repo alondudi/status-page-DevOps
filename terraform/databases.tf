@@ -16,7 +16,8 @@ resource "aws_elasticache_subnet_group" "redis_subnet_group" {
 resource "aws_db_instance" "postgres" {
   identifier             = "status-page-db-aa"
   engine                 = "postgres"
-  engine_version         = "12"           
+  engine_version         = "15"           
+  allow_major_version_upgrade = true
   instance_class         = "db.t3.micro"  
   allocated_storage      = 20            
   db_name                = "statuspage"
