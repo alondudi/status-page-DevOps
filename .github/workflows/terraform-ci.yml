@@ -1,0 +1,145 @@
+name: Terraform CI & Cost Estimation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+  pull_request:
+    paths:
+      - 'terraform/**'
+
+# These permissions are required for AWS OIDC authentication and PR comments
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-checks:
+    name: Terraform Lints, Validation and Security
+    runs-on: ubuntu-latest
+    env:
+      TF_ROOT: terraform
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # Uncomment the next step if `terraform init` requires reading from an AWS S3 backend
+      # - name: Configure AWS Credentials via OIDC
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+      #     aws-region: us-east-1 # Change to your AWS region
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Format
+        id: fmt
+        run: terraform fmt -check -recursive
+        working-directory: ${{ env.TF_ROOT }}
+        continue-on-error: true
+
+      - name: Terraform Init
+        id: init
+        # We use -backend=false if AWS OIDC is not configured yet for the CI runner
+        run: |
+          # If you enabled the AWS credentials step above, you can remove the `-backend=false`
+          terraform init -backend=false
+        working-directory: ${{ env.TF_ROOT }}
+
+      - name: Terraform Validate
+        id: validate
+        run: terraform validate -no-color
+        working-directory: ${{ env.TF_ROOT }}
+
+      - name: Setup TFLint
+        uses: terraform-linters/setup-tflint@v4
+        with:
+          tflint_version: latest
+
+      - name: Run TFLint
+        run: tflint -f compact
+        working-directory: ${{ env.TF_ROOT }}
+
+      - name: Run tfsec
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          working_directory: ${{ env.TF_ROOT }}
+
+  infracost:
+    name: Infracost Estimate
+    runs-on: ubuntu-latest
+    # Only run this on pull requests
+    if: github.event_name == 'pull_request'
+    env:
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
+      TF_ROOT: terraform
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # (Optional) Allow Infracost to read actual AWS usage/costs for better estimations
+      # - name: Configure AWS Credentials via OIDC
+      #   uses: aws-actions/configure-aws-credentials@v4
+      #   with:
+      #     role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+      #     aws-region: us-east-1 # Change to your AWS region
+
+      - name: Setup Infracost
+        uses: infracost/actions/setup@v3
+        with:
+          api-key: ${{ env.INFRACOST_API_KEY }}
+
+      - name: Generate Infracost comment JSON
+        run: |
+          infracost breakdown --path=${{ env.TF_ROOT }} \
+                              --format=json \
+                              --out-file=/tmp/infracost.json
+        
+      - name: Post Infracost comment
+        run: |
+          infracost comment github --path=/tmp/infracost.json \
+                                   --repo=$GITHUB_REPOSITORY \
+                                   --github-token=${{github.token}} \
+                                   --pull-request=${{github.event.pull_request.number}} \
+                                   --behavior=update
+
+  terraform-apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    # Requires an admin to click 'Approve' in GitHub if this environment is protected
+    environment: production
+    # Only run apply when code is pushed/merged to the main branch
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: terraform-checks
+    env:
+      TF_ROOT: terraform
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # AWS credentials MUST be set for terraform apply to successfully provision resources
+      - name: Configure AWS Credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: us-east-1 # Change to your AWS region
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        id: init
+        run: terraform init
+        working-directory: ${{ env.TF_ROOT }}
+
+      - name: Terraform Apply
+        id: apply
+        run: terraform apply -auto-approve
+        working-directory: ${{ env.TF_ROOT }}
